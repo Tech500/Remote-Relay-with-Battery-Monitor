@@ -1,7 +1,9 @@
 Remote-Relay-with-Battery-Monitor
 
-Project is a remote that uses two EByte, E220-900T30D modules that have the ability to tranmit a WOR (Wake On Radio)  
-signal to wake receiver and the ESP32 from deep sleep battery monitor with NTP timestamp transmitted to E220 receiver.  
+Project is a remote relay with battery monitoring; that uses two, EByte E220-900T30D modules that have the ability to 
+tranmit a WOR (Wake On Radio) signal to wake receiver and the ESP32 from deep sleep battery monitor with NTP timestamp 
+transmitted to E220 receiver. 
+
 Project logs timestamp, adc reading, and voltage to a file. Going to find out how long battery lasts and the number 
 of requests made using an automated method of generating GET requests. conditional statement determine how often request 
 are made to AsycWebServer. URL request to server switches “ON” live video camera for a predetermined period using a once 
