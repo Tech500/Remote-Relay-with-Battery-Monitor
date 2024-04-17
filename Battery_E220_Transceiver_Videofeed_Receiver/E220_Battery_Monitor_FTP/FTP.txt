@@ -1,0 +1,8 @@
+FTP 
+
+User:  admin
+Password:  password
+
+ested with Filezilla Client
+
+Default FTP Server address:  http:10.0.0.27
