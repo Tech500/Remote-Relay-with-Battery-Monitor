@@ -1,16 +1,7 @@
 Remote-Relay-with-Battery-Monitor
 
-Project is a remote relay with battery monitoring; that uses two, EByte E220-900T30D modules that have the ability to 
-tranmit a WOR (Wake On Radio) signal to wake receiver and the ESP32 from deep sleep battery monitor with NTP timestamp 
-transmitted to E220 receiver. 
-
-Project logs timestamp, adc reading, and voltage to a file. Going to find out how long battery lasts and the number 
-of requests made using an automated method of generating GET requests. conditional statement determine how often request 
-are made to AsycWebServer. URL request to server switches “ON” live video camera for a predetermined period using a once 
-Ticker timer method.  When countdown timer expires; video camera is switched “OFF”.
-
-Before running project sketches; E220 transeceivers need to configured by running the two configuration sketches on both 
-the "Sender" and the "Receiver".  
+Progress is good on project; mostly complete, want to add two-way messaging, that will come later.  Now the project uses two, EByte E220-900T30D transceiver to wake a sleeping ESP32 with the first a WOR preamble message.  Next when a person sends a URL request to view camera; the solar charged, battery power is switched on with a MOSFET, KY002S switch.  Happening at same time a countdown timer is started to turn off battery power when timer expires.  When battery power is turned on; battery status is checked using a INA226 battery monitor module.  Battery data is logged to a file.  Accessing log file is accomplished by a stand-alone FTP sketch to allow access for viewing battery data file.
+Camera is a Wyse Cam v3 that draws 180 mA; that until now used battery 24/7 on a 10,000 mAH power bank that only lasted about day.  This improvement; should conserve the majority of lost battery power; since camera will now only be on by URL request and on-time limited.
 
 Suggest labeling transceivers; one "Sender" and the other "Receiver".
 
@@ -18,3 +9,5 @@ FTP sketch can be used to retrive the logging file; for viewing data from the ba
 using "Filezilla Client".
 
 Project is a work in progress...
+
+[Short video of project:](https://drive.google.com/file/d/14rA51U5Aa5nzgZzr-EgNdHrJfonFd7Vr/view?usp=sharing)
