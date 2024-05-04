@@ -262,7 +262,6 @@ void setup() {
   if (ESP_SLEEP_WAKEUP_EXT0 == wakeup_reason) {
     Serial.println("Waked up from external GPIO!");
 
-    //gpio_hold_dis(GPIO_NUM_23);
     gpio_hold_dis(GPIO_NUM_21);
     gpio_hold_dis(GPIO_NUM_19);
 
@@ -279,14 +278,6 @@ void setup() {
     Serial.println("Start sleep!");
     delay(100);
 
-    /*
-    if (ESP_OK == gpio_hold_en(GPIO_NUM_23)) {
-      Serial.println("HOLD 23");
-    } else {
-      Serial.println("NO HOLD 23");
-    }
-    */
-
     if (ESP_OK == gpio_hold_en(GPIO_NUM_21)) {
       Serial.println("HOLD 21");
     } else {
@@ -302,9 +293,7 @@ void setup() {
   delay(1000);
 
   int value = digitalRead(23);
-  Serial.print("Value 23:  "); Serial.println(value);
-
-
+  
   if(value == 1){
     digitalWrite(23, LOW);
   } 
