@@ -1,4 +1,4 @@
-// E220_Transceiver_Remote_Receiver.ino
+// E220_Transceiver_Remote_Switch.ino
 // William Lucid 3/12/2024 @ 15:28 EST   
 // "H:\!! E220 Switch\E220_Transceiver_Remote_Switch\E220_Transceiver_Remote_Switch.ino"
 
