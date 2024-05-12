@@ -1,8 +1,6 @@
 // E220_Transceiver_Remote_Receiver.ino
-// William Lucid 3/11/2024 @ 17:17 EDT    Modified 5/12/2024 @ 09:33 EST
-// "C:\Users\William\Documents\■■■■   Production  E220  Project\E220 transceiver remote switch 3-11-2024\Mode 0 Rev 3\
-// E220_Transceiver_Remote_Switch\E220_Transceiver_Remote_Switch\E220_Transceiver_Remote_Switch.ino"
-//
+// William Lucid 3/12/2024 @ 15:28 EST   
+// "H:\!! E220 Switch\E220_Transceiver_Remote_Switch\E220_Transceiver_Remote_Switch.ino"
 
 /*
  * EBYTE LoRa E32
@@ -24,16 +22,16 @@
  * GND        ----- GND
  *
  */
- 
+
 // with this DESTINATION_ADDL 2 you must set
 // WOR SENDER configuration to the other device and
 // WOR RECEIVER to this device
 #define DESTINATION_ADDL 2
- 
+
 // If you want use RSSI uncomment //#define ENABLE_RSSI true
 // and use relative configuration with RSSI enabled
 //#define ENABLE_RSSI true
- 
+
 #include "Arduino.h"
 #include "LoRa_E220.h"
 #include <WiFi.h>
@@ -53,9 +51,9 @@ RTC_DATA_ATTR bool isPowerUp = false;
 RTC_DATA_ATTR int bootCount = 0;
 RTC_DATA_ATTR bool switch_State = false;  // Initially switch is off
 
-#define AUX GPIO_NUM_15 //WOR Radio/ESP32
-#define TRIGGER 23  //INA226 Power Monitor
-#define SWITCH 2  //KY002S  Mosfet switch
+#define AUX GPIO_NUM_13  //WOR Radio/ESP32
+#define TRIGGER 23       //INA226 Power Monitor
+#define SWITCH 2         //KY002S  Mosfet switch
 
 #define I2C_ADDRESS 0x40
 
@@ -70,7 +68,7 @@ INA226_WE ina226 = INA226_WE(I2C_ADDRESS);
 
 volatile bool event = false;
 
-void alert(){
+void alert() {
   event = true;
   detachInterrupt(2);
 }
@@ -87,8 +85,8 @@ struct Message {
   char timestamp[MAX_TIMESTAMP_LENGTH];
 } message;
 
- 
-#define FPM_SLEEP_MAX_TIME           0xFFFFFFF
+
+#define FPM_SLEEP_MAX_TIME 0xFFFFFFF
 void callback() {
   Serial.println("Callback");
   Serial.flush();
@@ -113,10 +111,10 @@ int data;
 
 bool interruptExecuted = false;
 
-void IRAM_ATTR ISRwakeUp() {
-	 // Do not use Serial on interrupt callback
-	 interruptExecuted = true;
-	 detachInterrupt(AUX);
+void IRAM_ATTR wakeUp() {
+  // Do not use Serial on interrupt callback
+  interruptExecuted = true;
+  detachInterrupt(AUX);
 }
 
 void printParameters(struct Configuration configuration);
@@ -124,27 +122,48 @@ void printParameters(struct Configuration configuration);
 void enterDeepSleep() {
   gpio_hold_en(GPIO_NUM_19);
   gpio_hold_en(GPIO_NUM_21);
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_15, LOW);
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_13, LOW);
   gpio_deep_sleep_hold_en();
   Serial.println("Going to sleep now");
   esp_deep_sleep_start();
   Serial.println("This will never be printed");
 }
- 
+
 // ---------- esp32 pins --------------
-LoRa_E220 e220ttl(&Serial2, 15, 21, 19); //  RX AUX M0 M1
- 
+LoRa_E220 e220ttl(&Serial2, 13, 21, 19);  //  RX AUX M0 M1
+
 //LoRa_E32 e220ttl(&Serial2, 22, 4, 18, 21, 19, UART_BPS_RATE_9600); //  esp32 RX <-- e22 TX, esp32 TX --> e22 RX AUX M0 M1
 // -------------------------------------
- 
+
 //The setup function is called once at startup of the sketch
-void setup()
-{
+void setup() {
   Serial.begin(9600);
   while (!Serial) {
-      ; // wait for serial port to connect. Needed for native USB
+    ;  // wait for serial port to connect. Needed for native USB
   }
+
+  Serial.println("\n\nE220 Transceiver Remote Receiver");
+
+  gpio_hold_dis(GPIO_NUM_21);
+  gpio_hold_dis(GPIO_NUM_19);
+  gpio_deep_sleep_hold_dis();
+
+  print_wakeup_reason();
+
+  //Increment boot number and print it every reboot
+  ++bootCount;
+  Serial.println("\n\nBoot number: " + String(bootCount));
+
+  bool fsok = LittleFS.begin(true);
+  Serial.printf_P(PSTR("\nFS init: %s\n"), fsok ? PSTR("ok") : PSTR("fail!"));
+
+  pinMode(AUX, OUTPUT);      //ESP32 pin 15
+  pinMode(TRIGGER, OUTPUT);  //ESP32 pin TRIGGER
+  pinMode(SWITCH, OUTPUT);   //ESP32 pin 4
+
+  Serial.println("Start deep sleep!");
   delay(100);
+  attachInterrupt(GPIO_NUM_13, wakeUp, FALLING);
 
   e220ttl.begin();
 
@@ -173,42 +192,14 @@ void setup()
   configuration.TRANSMISSION_MODE.enableLBT = LBT_DISABLED;
   configuration.TRANSMISSION_MODE.WORPeriod = WOR_4000_111;
 
-  print_wakeup_reason();
-  
-  //Increment boot number and print it every reboot
-  ++bootCount;
-  Serial.println("\n\nBoot number: " + String(bootCount));
-
-  if (isPowerUp) {
-    Serial.println("\nFlag indicates this was a deep sleep wake-up");
-  }
-
-  delay(100);
-
-  bool fsok = LittleFS.begin(true);
-  Serial.printf_P(PSTR("\nFS init: %s\n"), fsok ? PSTR("ok") : PSTR("fail!"));
-
-  pinMode(AUX, OUTPUT);  //ESP32 pin 15
-  pinMode(TRIGGER, OUTPUT);  //ESP32 pin TRIGGER
-  pinMode(SWITCH, OUTPUT);  //ESP32 pin 4
-
+  e220ttl.setMode(MODE_0_NORMAL);
   delay(1000);
-  Serial.println();
-  Serial.println("Start deep sleep!");
-  delay(100);
-  attachInterrupt(AUX, ISRwakeUp, FALLING);
-
-  e220ttl.setMode(MODE_2_POWER_SAVING);
-  delay(1000);
-
-  Serial.println();
-  Serial.println("Wake and start listening!");
 
   Wire.begin(22, 18);
 
-  if(!ina226.init()){
+  if (!ina226.init()) {
     Serial.println("Failed to init INA226. Check your wiring.");
-    while(1){}
+    while (1) {}
   }
   delay(1000);
 
@@ -223,7 +214,7 @@ void setup()
   AVERAGE_512        512
   AVERAGE_1024      1024
   */
-  // ina226.setAverage(AVERAGE_1024); 
+  // ina226.setAverage(AVERAGE_1024);
 
   /* Set conversion time in microseconds
      One set of shunt and bus voltage conversion will take: 
@@ -239,26 +230,26 @@ void setup()
      CONV_TIME_4156       4.156 ms
      CONV_TIME_8244       8.244 ms  
   */
-  // ina226.setConversionTime(CONV_TIME_8244); 
-  
+  // ina226.setConversionTime(CONV_TIME_8244);
+
   /* Set measure mode
   POWER_DOWN - INA226 switched off
   TRIGGERED  - measurement on demand
   CONTINUOUS  - continuous measurements (default)
   */
-  ina226.setMeasureMode(TRIGGERED); // choose mode and uncomment for change of default
-  
+  ina226.setMeasureMode(TRIGGERED);  // choose mode and uncomment for change of default
+
   /* If the current values delivered by the INA226 differ by a constant factor
      from values obtained with calibrated equipment you can define a correction factor.
      Correction factor = current delivered from calibrated equipment / current delivered by INA226
   */
   // ina226.setCorrectionFactor(0.95);
 
-    /* In the default mode the limit interrupt flag will be deleted after the next measurement within limits. 
+  /* In the default mode the limit interrupt flag will be deleted after the next measurement within limits. 
      With enableAltertLatch(), the flag will have to be deleted with readAndClearFlags(). 
   */
-    ina226.enableAlertLatch();
-  
+  ina226.enableAlertLatch();
+
   /* Set the alert type and the limit
       * Mode *        * Description *           * limit unit *
     SHUNT_OVER     Shunt Voltage over limit          mV
@@ -270,7 +261,7 @@ void setup()
     POWER_OVER     Power over limit                  mW
   */
   ina226.setAlertType(BUS_UNDER, 4.5);
- 
+
   attachInterrupt(digitalPinToInterrupt(SWITCH), alert, FALLING);
 
   esp_sleep_wakeup_cause_t wakeup_reason;
@@ -282,49 +273,48 @@ void setup()
 
     gpio_hold_dis(GPIO_NUM_21);
     gpio_hold_dis(GPIO_NUM_19);
-
     gpio_deep_sleep_hold_dis();
 
     e220ttl.setMode(MODE_0_NORMAL);
 
     e220ttl.sendFixedMessage(0, DESTINATION_ADDL, 68, "We have waked up from message, but we can't read It!");
-  } 
+    enterDeepSleep();
+  }
 }
- 
+
 // The loop function is called in an endless loop
-void loop()
-{
- 
-    if(event){
-      ina226.readAndClearFlags(); // reads interrupt and overflow flags and deletes them 
-      getINA226(dtStamp);  //displayResults();
-      attachInterrupt(digitalPinToInterrupt(SWITCH), alert, FALLING); 
-      event = false;
-      digitalWrite(TRIGGER, LOW);        
-      ina226.readAndClearFlags();
-    }      
-  
-    if (e220ttl.available() > 1) {
-      Serial.println("Message arrived!");
-      ResponseStructContainer rsc = e220ttl.receiveMessage(sizeof(Message));
-      struct Message message = *(Message*)rsc.data;
+void loop() {
 
-      //Serial.println(*(int*)(message.switchState));
-      Serial.println(message.switchState); 
-      free(rsc.data);
+  if (event) {
+    ina226.readAndClearFlags();  // reads interrupt and overflow flags and deletes them
+    getINA226(dtStamp);          //displayResults();
+    attachInterrupt(digitalPinToInterrupt(SWITCH), alert, FALLING);
+    event = false;
+    digitalWrite(TRIGGER, LOW);
+    ina226.readAndClearFlags();
+  }
 
-      // Work only with full connection
-      e220ttl.setMode(MODE_0_NORMAL);
+  if (e220ttl.available() > 1) {
+    Serial.println("Message arrived!");
+    ResponseStructContainer rsc = e220ttl.receiveMessage(sizeof(Message));
+    struct Message message = *(Message*)rsc.data;
 
-      delay(1000);
+    //Serial.println(*(int*)(message.switchState));
+    Serial.println(message.switchState);
+    free(rsc.data);
 
-      ResponseStatus rsSend = e220ttl.sendFixedMessage(0, DESTINATION_ADDL, 23, "We have received the message!");
-      // Check If there is some problem of succesfully send
-      Serial.println(rsSend.getResponseDescription());
+    // Work only with full connection
+    e220ttl.setMode(MODE_0_NORMAL);
+
+    delay(1000);
+
+    ResponseStatus rsSend = e220ttl.sendFixedMessage(0, DESTINATION_ADDL, 23, "We have received the message!");
+    // Check If there is some problem of succesfully send
+    Serial.println(rsSend.getResponseDescription());
 
     if (interruptExecuted) {
-        interruptExecuted = false;
-      
+      interruptExecuted = false;
+
       Serial.println("WakeUp Callback, AUX pin go LOW and start receive message!\n");
 
       if (message.switchState == 1) {
@@ -345,7 +335,7 @@ void loop()
         Serial.println("\nBattery power switched OFF");
         Serial.println("ESP32 going to Deep Sleep\n");
         enterDeepSleep();
-      }      
+      }
     }
   }
 }
