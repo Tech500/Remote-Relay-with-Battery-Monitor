@@ -50,8 +50,8 @@ char strftime_buf[64];
 #define AUX 15
 
 // Replace with your network details
-const char *ssid = "R2D2";
-const char *password = "sissy4357";
+const char *ssid = "xxxxx";
+const char *password = "xxxxxxxxxxxx";
 
 AsyncWebServer server(80);
 
